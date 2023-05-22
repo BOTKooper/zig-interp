@@ -162,7 +162,7 @@ const Lexer = struct {
     }
 };
 
-pub fn getLexer(input: []const u8) Lexer {
+pub fn init(input: []const u8) Lexer {
     var l = Lexer{
         .input = input,
         .position = 0,

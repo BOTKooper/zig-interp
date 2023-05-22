@@ -1,10 +1,10 @@
 const std = @import("std");
-const getLexer = @import("./lexer.zig").getLexer;
+const Lexer = @import("./lexer.zig");
 const Token = @import("./tokens.zig").Token;
 
 test "simple test" {
     const input = "=+(){},;";
-    var lexer = getLexer(input);
+    var lexer = Lexer.init(input);
 
     const expectedTokens = [_]Token{
         Token.ASSIGN,
@@ -33,7 +33,7 @@ test "simple test 2" {
         \\	};
         \\	let result = add(five, ten);
     ;
-    var lexer = getLexer(input);
+    var lexer = Lexer.init(input);
 
     const expectedTokens = [_]Token{
         Token.LET,
@@ -83,7 +83,7 @@ test "simple test 2" {
 
 test "doubled" {
     const input = "10 == 10 != 9 && false || 5 <= 10 >= 5;";
-    var lexer = getLexer(input);
+    var lexer = Lexer.init(input);
 
     const expectedTokens = [_]Token{
         Token{ .INT = "10" },
@@ -111,7 +111,7 @@ test "doubled" {
 
 test "illegal" {
     const input = "?? 10 == 10 != 9 && false || 5 <= 10 >= 5;?";
-    var lexer = getLexer(input);
+    var lexer = Lexer.init(input);
 
     const expectedTokens = [_]Token{
         Token{ .ILLEGAL = "?" },
