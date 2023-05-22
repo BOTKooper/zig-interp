@@ -1,6 +1,4 @@
 const std = @import("std");
-const stdout = std.io.getStdOut().writer();
-
 const Token = @import("./tokens.zig").Token;
 
 fn isDigit(ch: u8) bool {
