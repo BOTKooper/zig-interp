@@ -1,62 +1,89 @@
-pub const TokenType = enum {
-    ILLEGAL,
-    EOF,
+// pub const TokenType = enum {
+//     ILLEGAL,
+//     EOF,
+
+//     // Identifiers + literals,
+//     IDENT,
+//     INT,
+//     TRUE,
+//     FALSE,
+
+//     // Operators,
+//     ASSIGN,
+//     PLUS,
+//     MINUS,
+//     BANG,
+//     ASTERISK,
+//     SLASH,
+//     LT,
+//     GT,
+//     EQ,
+//     NOT_EQ,
+//     AND,
+//     OR,
+//     GTE,
+//     LTE,
+//     BITWISE_AND,
+//     BITWISE_OR,
+
+//     // Delimiters,
+//     COMMA,
+//     SEMICOLON,
+//     LPAREN,
+//     RPAREN,
+//     LBRACE,
+//     RBRACE,
+
+//     // Keywords,
+//     FUNCTION,
+//     LET,
+//     IF,
+//     ELSE,
+//     RETURN,
+// };
+
+pub const Token = union(enum) {
+    ILLEGAL: []const u8,
+    EOF: void,
 
     // Identifiers + literals,
-    IDENT,
-    INT,
-    TRUE,
-    FALSE,
+    IDENT: []const u8,
+    INT: []const u8,
+    TRUE: void,
+    FALSE: void,
 
     // Operators,
-    ASSIGN,
-    PLUS,
-    MINUS,
-    BANG,
-    ASTERISK,
-    SLASH,
-    LT,
-    GT,
-    EQ,
-    NOT_EQ,
-    AND,
-    OR,
-    GTE,
-    LTE,
-    BITWISE_AND,
-    BITWISE_OR,
+    ASSIGN: void,
+    PLUS: void,
+    MINUS: void,
+    BANG: void,
+    ASTERISK: void,
+
+    SLASH: void,
+    LT: void,
+    GT: void,
+
+    EQ: void,
+    NOT_EQ: void,
+    AND: void,
+    OR: void,
+    GTE: void,
+    LTE: void,
+    BITWISE_AND: void,
+    BITWISE_OR: void,
 
     // Delimiters,
-    COMMA,
-    SEMICOLON,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
+    COMMA: void,
+    SEMICOLON: void,
+    LPAREN: void,
+    RPAREN: void,
+    LBRACE: void,
+    RBRACE: void,
 
     // Keywords,
-    FUNCTION,
-    LET,
-    IF,
-    ELSE,
-    RETURN,
+    FUNCTION: void,
+    LET: void,
+    IF: void,
+    ELSE: void,
+    RETURN: void,
 };
-
-pub const Token = struct {
-    Type: TokenType,
-    Literal: []const u8,
-};
-
-pub fn buildToken(tokenType: TokenType, ch: u8, ch2: ?u8) Token {
-    if (ch2 == null) {
-        return Token{
-            .Type = tokenType,
-            .Literal = &([_]u8{ch}),
-        };
-    }
-
-    return Token{
-        .Type = tokenType,
-        .Literal = &([_]u8{ ch, ch2.? }),
-    };
-}

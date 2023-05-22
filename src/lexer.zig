@@ -1,48 +1,16 @@
 const std = @import("std");
 const stdout = std.io.getStdOut().writer();
 
-const Tokens = @import("./tokens.zig");
-const TokenType = Tokens.TokenType;
-const Token = Tokens.Token;
-
-var keywordsMapper = std.StringHashMap(TokenType).init(std.heap.page_allocator);
-var alreadySaturated = false;
-
-fn saturateMaps() !void {
-    if (alreadySaturated) {
-        return;
-    }
-    try keywordsMapper.put("fn", TokenType.FUNCTION);
-    try keywordsMapper.put("let", TokenType.LET);
-    try keywordsMapper.put("if", TokenType.IF);
-    try keywordsMapper.put("else", TokenType.ELSE);
-    try keywordsMapper.put("return", TokenType.RETURN);
-    try keywordsMapper.put("true", TokenType.TRUE);
-    try keywordsMapper.put("false", TokenType.FALSE);
-    alreadySaturated = true;
-}
-
-fn isPeekable(ch: u8) bool {
-    return (ch == '=' or
-        ch == '!' or
-        ch == '<' or
-        ch == '>' or
-        ch == '&' or
-        ch == '|');
-}
+const Token = @import("./tokens.zig").Token;
 
 fn isDigit(ch: u8) bool {
     return ch >= '0' and ch <= '9';
 }
 
-fn isValidIdentifierChar(ch: u8) bool {
+fn isLetterOrUnderscore(ch: u8) bool {
     return ((ch >= 'a' and ch <= 'z') or
         (ch >= 'A' and ch <= 'Z') or
         ch == '_');
-}
-
-fn getTokenTypeForIdentifier(identifier: []const u8) TokenType {
-    return keywordsMapper.get(identifier) orelse TokenType.IDENT;
 }
 
 const Lexer = struct {
@@ -79,7 +47,7 @@ const Lexer = struct {
 
     fn readIdentifier(l: *Lexer) []const u8 {
         var position = l.position;
-        while (isValidIdentifierChar(l.ch)) {
+        while (isLetterOrUnderscore(l.ch)) {
             l.readChar();
         }
         return l.input[position..l.position];
@@ -94,71 +62,50 @@ const Lexer = struct {
     pub fn nextToken(l: *Lexer) Token {
         l.skipWhitespace();
 
-        var token: Token = undefined;
+        var token: ?Token = null;
 
         switch (l.ch) {
             '=' => {
                 if (l.peekChar() == '=') {
                     l.readChar();
 
-                    token = Token{
-                        .Type = TokenType.EQ,
-                        .Literal = "==",
-                    };
+                    token = Token.EQ;
                 } else {
-                    token = Token{ .Type = TokenType.ASSIGN, .Literal = "=" };
+                    token = Token.ASSIGN;
                 }
             },
-            '+' => token = Token{ .Type = TokenType.PLUS, .Literal = "+" },
-            '-' => token = Token{ .Type = TokenType.MINUS, .Literal = "-" },
+            '+' => token = Token.PLUS,
+            '-' => token = Token.MINUS,
             '!' => {
                 if (l.peekChar() == '=') {
                     l.readChar();
-                    token = Token{
-                        .Type = TokenType.NOT_EQ,
-                        .Literal = "!=",
-                    };
+                    token = Token.NOT_EQ;
                 } else {
-                    token = Token{ .Type = TokenType.BANG, .Literal = "!" };
+                    token = Token.BANG;
                 }
             },
-            '*' => token = Token{ .Type = TokenType.ASTERISK, .Literal = "*" },
-            '/' => token = Token{ .Type = TokenType.SLASH, .Literal = "/" },
-            '(' => token = Token{ .Type = TokenType.LPAREN, .Literal = "(" },
-            ')' => token = Token{ .Type = TokenType.RPAREN, .Literal = ")" },
-            '{' => token = Token{ .Type = TokenType.LBRACE, .Literal = "{" },
-            '}' => token = Token{ .Type = TokenType.RBRACE, .Literal = "}" },
-            ',' => token = Token{ .Type = TokenType.COMMA, .Literal = "," },
-            ';' => token = Token{
-                .Type = TokenType.SEMICOLON,
-                .Literal = ";",
-            },
+            '*' => token = Token.ASTERISK,
+            '/' => token = Token.SLASH,
+            '(' => token = Token.LPAREN,
+            ')' => token = Token.RPAREN,
+            '{' => token = Token.LBRACE,
+            '}' => token = Token.RBRACE,
+            ',' => token = Token.COMMA,
+            ';' => token = Token.SEMICOLON,
             '&' => {
                 if (l.peekChar() == '&') {
                     l.readChar();
-                    token = Token{
-                        .Type = TokenType.AND,
-                        .Literal = "&&",
-                    };
+                    token = Token.AND;
                 } else {
-                    token = Token{
-                        .Type = TokenType.ILLEGAL,
-                        .Literal = "&",
-                    };
+                    token = Token.BITWISE_AND;
                 }
             },
             '|' => {
                 if (l.peekChar() == '|') {
                     l.readChar();
-                    token = Token{
-                        .Type = TokenType.OR,
-                        .Literal = "||",
-                    };
+                    token = Token.OR;
                 } else {
-                    token = Token{
-                        .Type = TokenType.ILLEGAL,
-                        .Literal = "|",
-                    };
+                    token = Token.BITWISE_OR;
                 }
             },
             '<' => {
@@ -166,67 +113,58 @@ const Lexer = struct {
                     const ch = l.ch;
                     _ = ch;
                     l.readChar();
-                    token = Token{
-                        .Type = TokenType.LTE,
-                        .Literal = "<=",
-                    };
+                    token = Token.LTE;
                 } else {
-                    token = Token{
-                        .Type = TokenType.LT,
-                        .Literal = "<",
-                    };
+                    token = Token.LT;
                 }
             },
             '>' => {
                 if (l.peekChar() == '=') {
-                    const ch = l.ch;
-                    _ = ch;
                     l.readChar();
-                    token = Token{
-                        .Type = TokenType.GTE,
-                        .Literal = ">=",
-                    };
+                    token = Token.GTE;
                 } else {
-                    token = Token{
-                        .Type = TokenType.GT,
-                        .Literal = ">",
-                    };
+                    token = Token.GT;
                 }
             },
-            0 => token = Token{
-                .Type = TokenType.EOF,
-                .Literal = "",
-            },
-            else => {
-                if (isValidIdentifierChar(l.ch)) {
-                    const literal = l.readIdentifier();
-                    const tokenType = getTokenTypeForIdentifier(literal);
-                    token = Token{
-                        .Type = tokenType,
-                        .Literal = literal,
-                    };
-                    return token;
-                } else if (isDigit(l.ch)) {
-                    const literal = l.readNumber();
-                    token = Token{
-                        .Type = TokenType.INT,
-                        .Literal = literal,
-                    };
-                    return token;
-                } else {
-                    token = Tokens.buildToken(TokenType.ILLEGAL, l.ch, null);
-                }
-            },
+            0 => token = Token.EOF,
+            else => {},
         }
 
-        l.readChar();
+        if (token == null and isLetterOrUnderscore(l.ch)) {
+            const literal = l.readIdentifier();
 
-        return token;
+            token = if (std.mem.eql(u8, "fn", literal))
+                Token.FUNCTION
+            else if (std.mem.eql(u8, "let", literal))
+                Token.LET
+            else if (std.mem.eql(u8, "if", literal))
+                Token.IF
+            else if (std.mem.eql(u8, "else", literal))
+                Token.ELSE
+            else if (std.mem.eql(u8, "return", literal))
+                Token.RETURN
+            else if (std.mem.eql(u8, "true", literal))
+                Token.TRUE
+            else if (std.mem.eql(u8, "false", literal))
+                Token.FALSE
+            else
+                Token{ .IDENT = literal };
+
+            return token.?;
+        }
+
+        if (token == null and isDigit(l.ch)) {
+            const literal = l.readNumber();
+            token = Token{ .INT = literal };
+            return token.?;
+        }
+
+        defer l.readChar();
+        return token orelse Token{.ILLEGAL = &([1]u8 {l.ch})};
     }
 };
 
-pub fn getLexer(input: []const u8) !Lexer {
-    try saturateMaps();
+pub fn getLexer(input: []const u8) Lexer {
     var l = Lexer{
         .input = input,
         .position = 0,
@@ -239,54 +177,81 @@ pub fn getLexer(input: []const u8) !Lexer {
 
 test "simple test" {
     const input = "=+(){},;";
-    var lexer = try getLexer(input);
+    var lexer = getLexer(input);
 
     const expectedTokens = [_]Token{
-        Token{ .Type = TokenType.ASSIGN, .Literal = "=" },
-        Token{ .Type = TokenType.PLUS, .Literal = "+" },
-        Token{ .Type = TokenType.LPAREN, .Literal = "(" },
-        Token{ .Type = TokenType.RPAREN, .Literal = ")" },
-        Token{ .Type = TokenType.LBRACE, .Literal = "{" },
-        Token{ .Type = TokenType.RBRACE, .Literal = "}" },
-        Token{ .Type = TokenType.COMMA, .Literal = "," },
-        Token{ .Type = TokenType.SEMICOLON, .Literal = ";" },
-        Token{ .Type = TokenType.EOF, .Literal = "" },
+        Token.ASSIGN,
+        Token.PLUS,
+        Token.LPAREN,
+        Token.RPAREN,
+        Token.LBRACE,
+        Token.RBRACE,
+        Token.COMMA,
+        Token.SEMICOLON,
+        Token.EOF,
     };
 
     for (expectedTokens) |expectedToken| {
         const token = lexer.nextToken();
-
-        try std.testing.expectEqual(token.Type, expectedToken.Type);
-        try std.testing.expectEqualStrings(token.Literal, expectedToken.Literal);
+        try std.testing.expectEqualDeep(token, expectedToken);
     }
 }
 
 test "doubled" {
     const input = "10 == 10 != 9 && false || 5 <= 10 >= 5;";
-    var lexer = try getLexer(input);
+    var lexer = getLexer(input);
 
     const expectedTokens = [_]Token{
-        Token{ .Type = TokenType.INT, .Literal = &([_]u8{ '1', '0' }) },
-        Token{ .Type = TokenType.EQ, .Literal = "==" },
-        Token{ .Type = TokenType.INT, .Literal = "10" },
-        Token{ .Type = TokenType.NOT_EQ, .Literal = "!=" },
-        Token{ .Type = TokenType.INT, .Literal = "9" },
-        Token{ .Type = TokenType.AND, .Literal = "&&" },
-        Token{ .Type = TokenType.FALSE, .Literal = "false" },
-        Token{ .Type = TokenType.OR, .Literal = "||" },
-        Token{ .Type = TokenType.INT, .Literal = "5" },
-        Token{ .Type = TokenType.LTE, .Literal = "<=" },
-        Token{ .Type = TokenType.INT, .Literal = "10" },
-        Token{ .Type = TokenType.GTE, .Literal = &([_]u8{ '>', '=' }) },
-        Token{ .Type = TokenType.INT, .Literal = "5" },
-        Token{ .Type = TokenType.SEMICOLON, .Literal = ";" },
-        Token{ .Type = TokenType.EOF, .Literal = "" },
+        Token{ .INT = "10" },
+        Token.EQ,
+        Token{ .INT = "10" },
+        Token.NOT_EQ,
+        Token{ .INT = "9" },
+        Token.AND,
+        Token.FALSE,
+        Token.OR,
+        Token{ .INT = "5" },
+        Token.LTE,
+        Token{ .INT = "10" },
+        Token.GTE,
+        Token{ .INT = "5" },
+        Token.SEMICOLON,
+        Token.EOF,
     };
 
     for (expectedTokens) |expectedToken| {
         const token = lexer.nextToken();
+        try std.testing.expectEqualDeep(token, expectedToken);
+    }
+}
 
-        try std.testing.expectEqual(token.Type, expectedToken.Type);
-        try std.testing.expectEqualStrings(token.Literal, expectedToken.Literal);
+test "illegal" {
+    const input = "?? 10 == 10 != 9 && false || 5 <= 10 >= 5;?";
+    var lexer = getLexer(input);
+
+    const expectedTokens = [_]Token{
+        Token{.ILLEGAL = "?"},
+        Token{.ILLEGAL = "?"},
+        Token{ .INT = "10" },
+        Token.EQ,
+        Token{ .INT = "10" },
+        Token.NOT_EQ,
+        Token{ .INT = "9" },
+        Token.AND,
+        Token.FALSE,
+        Token.OR,
+        Token{ .INT = "5" },
+        Token.LTE,
+        Token{ .INT = "10" },
+        Token.GTE,
+        Token{ .INT = "5" },
+        Token.SEMICOLON,
+        Token{.ILLEGAL = "?"},
+        Token.EOF,
+    };
+
+    for (expectedTokens) |expectedToken| {
+        const token = lexer.nextToken();
+        try std.testing.expectEqualDeep(token, expectedToken);
     }
 }
