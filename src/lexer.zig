@@ -17,149 +17,92 @@ const Lexer = struct {
     readPosition: usize,
     ch: u8,
 
-    pub fn readChar(l: *Lexer) void {
-        if (l.readPosition >= l.input.len) {
-            l.ch = 0;
+    pub fn readChar(self: *Lexer) void {
+        if (self.readPosition >= self.input.len) {
+            self.ch = 0;
         } else {
-            l.ch = l.input[l.readPosition];
+            self.ch = self.input[self.readPosition];
         }
-        l.position = l.readPosition;
-        l.readPosition += 1;
+        self.position = self.readPosition;
+        self.readPosition += 1;
     }
 
-    fn peekChar(l: *Lexer) u8 {
-        if (l.readPosition >= l.input.len) {
+    fn peekChar(self: *Lexer) u8 {
+        if (self.readPosition >= self.input.len) {
             return 0;
         } else {
-            return l.input[l.readPosition];
+            return self.input[self.readPosition];
         }
     }
 
-    fn readNumber(l: *Lexer) []const u8 {
-        var position = l.position;
-        while (isDigit(l.ch)) {
-            l.readChar();
+    fn readNumber(self: *Lexer) []const u8 {
+        var position = self.position;
+        while (isDigit(self.ch) and isDigit(self.peekChar())) {
+            self.readChar();
         }
-        return l.input[position..l.position];
+        return self.input[position .. self.position + 1];
     }
 
-    fn readIdentifier(l: *Lexer) []const u8 {
-        var position = l.position;
-        while (isLetterOrUnderscore(l.ch)) {
-            l.readChar();
+    fn readIdentifier(self: *Lexer) []const u8 {
+        var position = self.position;
+        while (isLetterOrUnderscore(self.ch) and isLetterOrUnderscore(self.peekChar())) {
+            self.readChar();
         }
-        return l.input[position..l.position];
+        return self.input[position .. self.position + 1];
     }
 
-    fn skipWhitespace(l: *Lexer) void {
-        while (l.ch == ' ' or l.ch == '\t' or l.ch == '\n' or l.ch == '\r') {
-            l.readChar();
+    fn skipWhitespace(self: *Lexer) void {
+        while (self.ch == ' ' or self.ch == '\t' or self.ch == '\n' or self.ch == '\r') {
+            self.readChar();
         }
     }
 
-    pub fn nextToken(l: *Lexer) Token {
-        l.skipWhitespace();
+    pub fn nextToken(self: *Lexer) Token {
+        self.skipWhitespace();
 
-        var token: ?Token = null;
+        var token: ?Token = switch (self.ch) {
+            '+' => .PLUS,
+            '-' => .MINUS,
+            '*' => .ASTERISK,
+            '/' => .SLASH,
+            '(' => .LPAREN,
+            ')' => .RPAREN,
+            '{' => .LBRACE,
+            '}' => .RBRACE,
+            ',' => .COMMA,
+            ';' => .SEMICOLON,
+            '!' => self.ifPeekIs('=', .NOT_EQ, .BANG),
+            '=' => self.ifPeekIs('=', .EQ, .ASSIGN),
+            '&' => self.ifPeekIs('&', .AND, .BITWISE_AND),
+            '|' => self.ifPeekIs('|', .OR, .BITWISE_OR),
+            '<' => self.ifPeekIs('=', .LTE, .LT),
+            '>' => self.ifPeekIs('=', .GTE, .GT),
+            0 => .EOF,
+            else => null,
+        };
 
-        switch (l.ch) {
-            '=' => {
-                if (l.peekChar() == '=') {
-                    l.readChar();
-
-                    token = Token.EQ;
-                } else {
-                    token = Token.ASSIGN;
-                }
-            },
-            '+' => token = Token.PLUS,
-            '-' => token = Token.MINUS,
-            '!' => {
-                if (l.peekChar() == '=') {
-                    l.readChar();
-                    token = Token.NOT_EQ;
-                } else {
-                    token = Token.BANG;
-                }
-            },
-            '*' => token = Token.ASTERISK,
-            '/' => token = Token.SLASH,
-            '(' => token = Token.LPAREN,
-            ')' => token = Token.RPAREN,
-            '{' => token = Token.LBRACE,
-            '}' => token = Token.RBRACE,
-            ',' => token = Token.COMMA,
-            ';' => token = Token.SEMICOLON,
-            '&' => {
-                if (l.peekChar() == '&') {
-                    l.readChar();
-                    token = Token.AND;
-                } else {
-                    token = Token.BITWISE_AND;
-                }
-            },
-            '|' => {
-                if (l.peekChar() == '|') {
-                    l.readChar();
-                    token = Token.OR;
-                } else {
-                    token = Token.BITWISE_OR;
-                }
-            },
-            '<' => {
-                if (l.peekChar() == '=') {
-                    const ch = l.ch;
-                    _ = ch;
-                    l.readChar();
-                    token = Token.LTE;
-                } else {
-                    token = Token.LT;
-                }
-            },
-            '>' => {
-                if (l.peekChar() == '=') {
-                    l.readChar();
-                    token = Token.GTE;
-                } else {
-                    token = Token.GT;
-                }
-            },
-            0 => token = Token.EOF,
-            else => {},
+        if (token == null and isLetterOrUnderscore(self.ch)) {
+            token = Token.buildForLiteral(self.readIdentifier());
         }
 
-        if (token == null and isLetterOrUnderscore(l.ch)) {
-            const literal = l.readIdentifier();
-
-            token = if (std.mem.eql(u8, "fn", literal))
-                Token.FUNCTION
-            else if (std.mem.eql(u8, "let", literal))
-                Token.LET
-            else if (std.mem.eql(u8, "if", literal))
-                Token.IF
-            else if (std.mem.eql(u8, "else", literal))
-                Token.ELSE
-            else if (std.mem.eql(u8, "return", literal))
-                Token.RETURN
-            else if (std.mem.eql(u8, "true", literal))
-                Token.TRUE
-            else if (std.mem.eql(u8, "false", literal))
-                Token.FALSE
-            else
-                Token{ .IDENT = literal };
-
-            return token.?;
+        if (token == null and isDigit(self.ch)) {
+            token = .{ .INT = self.readNumber() };
         }
 
-        if (token == null and isDigit(l.ch)) {
-            const literal = l.readNumber();
-            token = Token{ .INT = literal };
-            return token.?;
-        }
-
-        defer l.readChar();
-        return token orelse Token{ .ILLEGAL = &([1]u8{l.ch}) };
+        const tok = token orelse Token{ .ILLEGAL = &([1]u8{self.ch}) };
+        self.readChar();
+        return tok;
     }
+
+    fn ifPeekIs(self: *Lexer, expected: u8, then: Token, otherwise: Token) Token {
+        if (self.peekChar() == expected) {
+            self.readChar();
+            return then;
+        } else {
+            return otherwise;
+        }
+    }
+
 };
 
 pub fn init(input: []const u8) Lexer {

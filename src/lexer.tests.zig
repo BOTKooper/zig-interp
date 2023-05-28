@@ -5,17 +5,17 @@ const Token = @import("./tokens.zig").Token;
 test "simple test" {
     const input = "=+(){},;";
     var lexer = Lexer.init(input);
-
+ 
     const expectedTokens = [_]Token{
-        Token.ASSIGN,
-        Token.PLUS,
-        Token.LPAREN,
-        Token.RPAREN,
-        Token.LBRACE,
-        Token.RBRACE,
-        Token.COMMA,
-        Token.SEMICOLON,
-        Token.EOF,
+        .ASSIGN,
+        .PLUS,
+        .LPAREN,
+        .RPAREN,
+        .LBRACE,
+        .RBRACE,
+        .COMMA,
+        .SEMICOLON,
+        .EOF,
     };
 
     for (expectedTokens) |expectedToken| {
@@ -34,45 +34,45 @@ test "simple test 2" {
         \\	let result = add(five, ten);
     ;
     var lexer = Lexer.init(input);
-
+ 
     const expectedTokens = [_]Token{
-        Token.LET,
-        Token{ .IDENT = "five" },
-        Token.ASSIGN,
-        Token{ .INT = "5" },
-        Token.SEMICOLON,
-        Token.LET,
-        Token{ .IDENT = "ten" },
-        Token.ASSIGN,
-        Token{ .INT = "10" },
-        Token.SEMICOLON,
-        Token.LET,
-        Token{ .IDENT = "add" },
-        Token.ASSIGN,
-        Token.FUNCTION,
-        Token.LPAREN,
-        Token{ .IDENT = "x" },
-        Token.COMMA,
-        Token{ .IDENT = "y" },
-        Token.RPAREN,
-        Token.LBRACE,
-        Token{ .IDENT = "x" },
-        Token.PLUS,
-        Token{ .IDENT = "y" },
-        Token.SEMICOLON,
-        Token.RBRACE,
-        Token.SEMICOLON,
-        Token.LET,
-        Token{ .IDENT = "result" },
-        Token.ASSIGN,
-        Token{ .IDENT = "add" },
-        Token.LPAREN,
-        Token{ .IDENT = "five" },
-        Token.COMMA,
-        Token{ .IDENT = "ten" },
-        Token.RPAREN,
-        Token.SEMICOLON,
-        Token.EOF,
+        .LET,
+        .{ .IDENT = "five" },
+        .ASSIGN,
+        .{ .INT = "5" },
+        .SEMICOLON,
+        .LET,
+        .{ .IDENT = "ten" },
+        .ASSIGN,
+        .{ .INT = "10" },
+        .SEMICOLON,
+        .LET,
+        .{ .IDENT = "add" },
+        .ASSIGN,
+        .FUNCTION,
+        .LPAREN,
+        .{ .IDENT = "x" },
+        .COMMA,
+        .{ .IDENT = "y" },
+        .RPAREN,
+        .LBRACE,
+        .{ .IDENT = "x" },
+        .PLUS,
+        .{ .IDENT = "y" },
+        .SEMICOLON,
+        .RBRACE,
+        .SEMICOLON,
+        .LET,
+        .{ .IDENT = "result" },
+        .ASSIGN,
+        .{ .IDENT = "add" },
+        .LPAREN,
+        .{ .IDENT = "five" },
+        .COMMA,
+        .{ .IDENT = "ten" },
+        .RPAREN,
+        .SEMICOLON,
+        .EOF,
     };
 
     for (expectedTokens) |expectedToken| {
@@ -84,23 +84,23 @@ test "simple test 2" {
 test "doubled" {
     const input = "10 == 10 != 9 && false || 5 <= 10 >= 5;";
     var lexer = Lexer.init(input);
-
+ 
     const expectedTokens = [_]Token{
-        Token{ .INT = "10" },
-        Token.EQ,
-        Token{ .INT = "10" },
-        Token.NOT_EQ,
-        Token{ .INT = "9" },
-        Token.AND,
-        Token.FALSE,
-        Token.OR,
-        Token{ .INT = "5" },
-        Token.LTE,
-        Token{ .INT = "10" },
-        Token.GTE,
-        Token{ .INT = "5" },
-        Token.SEMICOLON,
-        Token.EOF,
+        .{ .INT = "10" },
+        .EQ,
+        .{ .INT = "10" },
+        .NOT_EQ,
+        .{ .INT = "9" },
+        .AND,
+        .FALSE,
+        .OR,
+        .{ .INT = "5" },
+        .LTE,
+        .{ .INT = "10" },
+        .GTE,
+        .{ .INT = "5" },
+        .SEMICOLON,
+        .EOF,
     };
 
     for (expectedTokens) |expectedToken| {
@@ -112,26 +112,58 @@ test "doubled" {
 test "illegal" {
     const input = "?? 10 == 10 != 9 && false || 5 <= 10 >= 5;?";
     var lexer = Lexer.init(input);
+ 
+    const expectedTokens = [_]Token{
+        .{ .ILLEGAL = "?" },
+        .{ .ILLEGAL = "?" },
+        .{ .INT = "10" },
+        .EQ,
+        .{ .INT = "10" },
+        .NOT_EQ,
+        .{ .INT = "9" },
+        .AND,
+        .FALSE,
+        .OR,
+        .{ .INT = "5" },
+        .LTE,
+        .{ .INT = "10" },
+        .GTE,
+        .{ .INT = "5" },
+        .SEMICOLON,
+        .{ .ILLEGAL = "?" },
+        .EOF,
+    };
+
+    for (expectedTokens) |expectedToken| {
+        const token = lexer.nextToken();
+        try std.testing.expectEqualDeep(token, expectedToken);
+    }
+}
+
+
+test "asd" {
+    const input = "?? 10 == 10 != 9 && false || 5 <= 10 >= 5;?";
+    var lexer = Lexer.init(input);
 
     const expectedTokens = [_]Token{
-        Token{ .ILLEGAL = "?" },
-        Token{ .ILLEGAL = "?" },
-        Token{ .INT = "10" },
-        Token.EQ,
-        Token{ .INT = "10" },
-        Token.NOT_EQ,
-        Token{ .INT = "9" },
-        Token.AND,
-        Token.FALSE,
-        Token.OR,
-        Token{ .INT = "5" },
-        Token.LTE,
-        Token{ .INT = "10" },
-        Token.GTE,
-        Token{ .INT = "5" },
-        Token.SEMICOLON,
-        Token{ .ILLEGAL = "?" },
-        Token.EOF,
+        .{ .ILLEGAL = "?" },
+        .{ .ILLEGAL = "?" },
+        .{ .INT = "10" },
+        .EQ,
+        .{ .INT = "10" },
+        .NOT_EQ,
+        .{ .INT = "9" },
+        .AND,
+        .FALSE,
+        .OR,
+        .{ .INT = "5" },
+        .LTE,
+        .{ .INT = "10" },
+        .GTE,
+        .{ .INT = "5" },
+        .SEMICOLON,
+        .{ .ILLEGAL = "?" },
+        .EOF,
     };
 
     for (expectedTokens) |expectedToken| {
